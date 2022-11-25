@@ -15,13 +15,12 @@
   "cordova": {
     "id": "cordova-plugin-advanced-http",
     "platforms": [
-      "ios",
-      "android"
+      "ios"
     ]
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/silkimen/cordova-plugin-advanced-http.git"
+    "url": "git+https://github.com/Plurilogic/cordova-plugin-advanced-http.git"
   },
   "keywords": [
     "cordova",
@@ -51,10 +50,6 @@
     "silkimen"
   ],
   "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/silkimen/cordova-plugin-advanced-http/issues"
-  },
-  "homepage": "https://github.com/silkimen/cordova-plugin-advanced-http#readme",
   "devDependencies": {
     "chai": "4.3.6",
     "colors": "1.4.0",
