@@ -1,5 +1,13 @@
 # Changelog
 
+# 3.3.3
+
+- Fixed #1: Calls should use a background thread.
+
+# 3.3.2
+
+- Forked: Forked plugin
+
 # 3.3.1
 
 - Fixed #427: missing connection check on Android (thanks moshe5745)

@@ -426,15 +426,21 @@
 }
 
 - (void)post:(CDVInvokedUrlCommand*)command {
-    [self executeRequestWithData: command withMethod:@"POST"];
+    [self.commandDelegate runInBackground:^{
+        [self executeRequestWithData: command withMethod:@"POST"];
+    }];
 }
 
 - (void)put:(CDVInvokedUrlCommand*)command {
-    [self executeRequestWithData: command withMethod:@"PUT"];
+    [self.commandDelegate runInBackground:^{
+        [self executeRequestWithData: command withMethod:@"PUT"];
+    }];
 }
 
 - (void)patch:(CDVInvokedUrlCommand*)command {
-    [self executeRequestWithData: command withMethod:@"PATCH"];
+    [self.commandDelegate runInBackground:^{
+        [self executeRequestWithData: command withMethod:@"PATCH"];
+    }];
 }
 
 - (void)get:(CDVInvokedUrlCommand*)command {
@@ -445,15 +451,21 @@
 }
 
 - (void)delete:(CDVInvokedUrlCommand*)command {
-    [self executeRequestWithoutData: command withMethod:@"DELETE"];
+    [self.commandDelegate runInBackground:^{
+        [self executeRequestWithoutData: command withMethod:@"DELETE"];
+    }];
 }
 
 - (void)head:(CDVInvokedUrlCommand*)command {
-    [self executeRequestWithoutData: command withMethod:@"HEAD"];
+    [self.commandDelegate runInBackground:^{
+        [self executeRequestWithoutData: command withMethod:@"HEAD"];
+    }];
 }
 
 - (void)options:(CDVInvokedUrlCommand*)command {
-    [self executeRequestWithoutData: command withMethod:@"OPTIONS"];
+    [self.commandDelegate runInBackground:^{
+        [self executeRequestWithoutData: command withMethod:@"OPTIONS"];
+    }];
 }
 
 - (void)uploadFiles:(CDVInvokedUrlCommand*)command {
