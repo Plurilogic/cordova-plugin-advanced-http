@@ -10,20 +10,8 @@ TARGET=emulator
 
 while :; do
   case $1 in
-    --android)
-      PLATFORM=android
-      ;;
-    --browser)
-      PLATFORM=browser
-      ;;
     --ios)
       PLATFORM=ios
-      ;;
-    --device)
-      TARGET=device
-      ;;
-    --emulator)
-      TARGET=emulator
       ;;
     -?*)
       printf 'WARN: Unknown option (ignored): %s\n' "$1" >&2

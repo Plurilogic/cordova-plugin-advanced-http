@@ -9,3 +9,4 @@ npm-debug.log
 /android-sdk-macosx/**
 .idea/
 *.iml
+.DS_Store

@@ -438,7 +438,10 @@
 }
 
 - (void)get:(CDVInvokedUrlCommand*)command {
-    [self executeRequestWithoutData: command withMethod:@"GET"];
+
+    [self.commandDelegate runInBackground:^{
+        [self executeRequestWithoutData: command withMethod:@"GET"];
+    }];
 }
 
 - (void)delete:(CDVInvokedUrlCommand*)command {
