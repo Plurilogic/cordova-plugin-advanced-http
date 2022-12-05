@@ -177,6 +177,8 @@ module.exports = function init(exec, cookieHandler, urlUtil, helpers, globalConf
   
     var reqId = helpers.nextRequestId();
 
+    console.log('DOIN IT');
+
     switch (options.method) {
       case 'post':
       case 'put':
