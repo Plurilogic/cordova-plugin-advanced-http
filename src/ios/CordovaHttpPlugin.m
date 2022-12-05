@@ -213,44 +213,46 @@
     CordovaHttpPlugin* __weak weakSelf = self;
     [[SDNetworkActivityIndicator sharedActivityIndicator] startActivity];
 
-    @try {
-        void (^onSuccess)(NSURLSessionTask *, id) = ^(NSURLSessionTask *task, id responseObject) {
-            [weakSelf removeRequest:reqId];
+    [self.commandDelegate runInBackground:^{
+        @try {
+            void (^onSuccess)(NSURLSessionTask *, id) = ^(NSURLSessionTask *task, id responseObject) {
+                [weakSelf removeRequest:reqId];
 
-            NSMutableDictionary *dictionary = [NSMutableDictionary dictionary];
+                NSMutableDictionary *dictionary = [NSMutableDictionary dictionary];
 
-            // no 'body' for HEAD request, omitting 'data'
-            if ([method isEqualToString:@"HEAD"]) {
-                [self handleSuccess:dictionary withResponse:(NSHTTPURLResponse*)task.response andData:nil];
-            } else {
-                [self handleSuccess:dictionary withResponse:(NSHTTPURLResponse*)task.response andData:responseObject];
-            }
+                // no 'body' for HEAD request, omitting 'data'
+                if ([method isEqualToString:@"HEAD"]) {
+                    [self handleSuccess:dictionary withResponse:(NSHTTPURLResponse*)task.response andData:nil];
+                } else {
+                    [self handleSuccess:dictionary withResponse:(NSHTTPURLResponse*)task.response andData:responseObject];
+                }
 
-            CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:dictionary];
-            [weakSelf.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+                CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:dictionary];
+                [weakSelf.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+                [[SDNetworkActivityIndicator sharedActivityIndicator] stopActivity];
+                [manager invalidateSessionCancelingTasks:YES];
+            };
+
+            void (^onFailure)(NSURLSessionTask *, NSError *) = ^(NSURLSessionTask *task, NSError *error) {
+                [weakSelf removeRequest:reqId];
+
+                NSMutableDictionary *dictionary = [NSMutableDictionary dictionary];
+                [self handleError:dictionary withResponse:(NSHTTPURLResponse*)task.response error:error];
+
+                CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:dictionary];
+                [weakSelf.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+                [[SDNetworkActivityIndicator sharedActivityIndicator] stopActivity];
+                [manager invalidateSessionCancelingTasks:YES];
+            };
+
+            NSURLSessionDataTask *task = [manager downloadTaskWithHTTPMethod:method URLString:url parameters:nil progress:nil success:onSuccess failure:onFailure];
+            [self addRequest:reqId forTask:task];
+        }
+        @catch (NSException *exception) {
             [[SDNetworkActivityIndicator sharedActivityIndicator] stopActivity];
-            [manager invalidateSessionCancelingTasks:YES];
-        };
-
-        void (^onFailure)(NSURLSessionTask *, NSError *) = ^(NSURLSessionTask *task, NSError *error) {
-            [weakSelf removeRequest:reqId];
-
-            NSMutableDictionary *dictionary = [NSMutableDictionary dictionary];
-            [self handleError:dictionary withResponse:(NSHTTPURLResponse*)task.response error:error];
-
-            CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:dictionary];
-            [weakSelf.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
-            [[SDNetworkActivityIndicator sharedActivityIndicator] stopActivity];
-            [manager invalidateSessionCancelingTasks:YES];
-        };
-
-        NSURLSessionDataTask *task = [manager downloadTaskWithHTTPMethod:method URLString:url parameters:nil progress:nil success:onSuccess failure:onFailure];
-        [self addRequest:reqId forTask:task];
-    }
-    @catch (NSException *exception) {
-        [[SDNetworkActivityIndicator sharedActivityIndicator] stopActivity];
-        [self handleException:exception withCommand:command];
-    }
+            [self handleException:exception withCommand:command];
+        }
+    }];
 }
 
 - (void)executeRequestWithData:(CDVInvokedUrlCommand*)command withMethod:(NSString*)method {
@@ -276,77 +278,79 @@
     CordovaHttpPlugin* __weak weakSelf = self;
     [[SDNetworkActivityIndicator sharedActivityIndicator] startActivity];
 
-    @try {
-        void (^constructBody)(id<AFMultipartFormData>) = ^(id<AFMultipartFormData> formData) {
-            NSArray *buffers = [data mutableArrayValueForKey:@"buffers"];
-            NSArray *fileNames = [data mutableArrayValueForKey:@"fileNames"];
-            NSArray *names = [data mutableArrayValueForKey:@"names"];
-            NSArray *types = [data mutableArrayValueForKey:@"types"];
+    [self.commandDelegate runInBackground:^{
+        @try {
+            void (^constructBody)(id<AFMultipartFormData>) = ^(id<AFMultipartFormData> formData) {
+                NSArray *buffers = [data mutableArrayValueForKey:@"buffers"];
+                NSArray *fileNames = [data mutableArrayValueForKey:@"fileNames"];
+                NSArray *names = [data mutableArrayValueForKey:@"names"];
+                NSArray *types = [data mutableArrayValueForKey:@"types"];
 
-            NSError *error;
+                NSError *error;
 
-            for (int i = 0; i < [buffers count]; ++i) {
-                NSData *decodedBuffer = [[NSData alloc] initWithBase64EncodedString:[buffers objectAtIndex:i] options:0];
-                NSString *fileName = [fileNames objectAtIndex:i];
-                NSString *partName = [names objectAtIndex:i];
-                NSString *partType = [types objectAtIndex:i];
+                for (int i = 0; i < [buffers count]; ++i) {
+                    NSData *decodedBuffer = [[NSData alloc] initWithBase64EncodedString:[buffers objectAtIndex:i] options:0];
+                    NSString *fileName = [fileNames objectAtIndex:i];
+                    NSString *partName = [names objectAtIndex:i];
+                    NSString *partType = [types objectAtIndex:i];
 
-                if (![fileName isEqual:[NSNull null]]) {
-                    [formData appendPartWithFileData:decodedBuffer name:partName fileName:fileName mimeType:partType];
-                } else {
-                    [formData appendPartWithFormData:decodedBuffer name:[names objectAtIndex:i]];
+                    if (![fileName isEqual:[NSNull null]]) {
+                        [formData appendPartWithFileData:decodedBuffer name:partName fileName:fileName mimeType:partType];
+                    } else {
+                        [formData appendPartWithFormData:decodedBuffer name:[names objectAtIndex:i]];
+                    }
                 }
-            }
 
-            if (error) {
+                if (error) {
+                    [weakSelf removeRequest:reqId];
+
+                    NSMutableDictionary *dictionary = [NSMutableDictionary dictionary];
+                    [dictionary setObject:[NSNumber numberWithInt:400] forKey:@"status"];
+                    [dictionary setObject:@"Could not add part to multipart request body." forKey:@"error"];
+                    CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:dictionary];
+                    [weakSelf.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+                    [[SDNetworkActivityIndicator sharedActivityIndicator] stopActivity];
+                    return;
+                }
+            };
+
+            void (^onSuccess)(NSURLSessionTask *, id) = ^(NSURLSessionTask *task, id responseObject) {
                 [weakSelf removeRequest:reqId];
 
                 NSMutableDictionary *dictionary = [NSMutableDictionary dictionary];
-                [dictionary setObject:[NSNumber numberWithInt:400] forKey:@"status"];
-                [dictionary setObject:@"Could not add part to multipart request body." forKey:@"error"];
+                [self handleSuccess:dictionary withResponse:(NSHTTPURLResponse*)task.response andData:responseObject];
+
+                CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:dictionary];
+                [weakSelf.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+                [[SDNetworkActivityIndicator sharedActivityIndicator] stopActivity];
+                [manager invalidateSessionCancelingTasks:YES];
+            };
+
+            void (^onFailure)(NSURLSessionTask *, NSError *) = ^(NSURLSessionTask *task, NSError *error) {
+                [weakSelf removeRequest:reqId];
+
+                NSMutableDictionary *dictionary = [NSMutableDictionary dictionary];
+                [self handleError:dictionary withResponse:(NSHTTPURLResponse*)task.response error:error];
+
                 CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:dictionary];
                 [weakSelf.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
                 [[SDNetworkActivityIndicator sharedActivityIndicator] stopActivity];
-                return;
+                [manager invalidateSessionCancelingTasks:YES];
+            };
+
+            NSURLSessionDataTask *task;
+            if ([serializerName isEqualToString:@"multipart"]) {
+                task = [manager uploadTaskWithHTTPMethod:method URLString:url parameters:nil constructingBodyWithBlock:constructBody progress:nil success:onSuccess failure:onFailure];
+            } else {
+                task = [manager uploadTaskWithHTTPMethod:method URLString:url parameters:data progress:nil success:onSuccess failure:onFailure];
             }
-        };
-
-        void (^onSuccess)(NSURLSessionTask *, id) = ^(NSURLSessionTask *task, id responseObject) {
-            [weakSelf removeRequest:reqId];
-
-            NSMutableDictionary *dictionary = [NSMutableDictionary dictionary];
-            [self handleSuccess:dictionary withResponse:(NSHTTPURLResponse*)task.response andData:responseObject];
-
-            CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:dictionary];
-            [weakSelf.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
-            [[SDNetworkActivityIndicator sharedActivityIndicator] stopActivity];
-            [manager invalidateSessionCancelingTasks:YES];
-        };
-
-        void (^onFailure)(NSURLSessionTask *, NSError *) = ^(NSURLSessionTask *task, NSError *error) {
-            [weakSelf removeRequest:reqId];
-
-            NSMutableDictionary *dictionary = [NSMutableDictionary dictionary];
-            [self handleError:dictionary withResponse:(NSHTTPURLResponse*)task.response error:error];
-
-            CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:dictionary];
-            [weakSelf.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
-            [[SDNetworkActivityIndicator sharedActivityIndicator] stopActivity];
-            [manager invalidateSessionCancelingTasks:YES];
-        };
-
-        NSURLSessionDataTask *task;
-        if ([serializerName isEqualToString:@"multipart"]) {
-            task = [manager uploadTaskWithHTTPMethod:method URLString:url parameters:nil constructingBodyWithBlock:constructBody progress:nil success:onSuccess failure:onFailure];
-        } else {
-            task = [manager uploadTaskWithHTTPMethod:method URLString:url parameters:data progress:nil success:onSuccess failure:onFailure];
+            [self addRequest:reqId forTask:task];
         }
-        [self addRequest:reqId forTask:task];
-    }
-    @catch (NSException *exception) {
-        [[SDNetworkActivityIndicator sharedActivityIndicator] stopActivity];
-        [self handleException:exception withCommand:command];
-    }
+        @catch (NSException *exception) {
+            [[SDNetworkActivityIndicator sharedActivityIndicator] stopActivity];
+            [self handleException:exception withCommand:command];
+        }
+    }];
 }
 
 - (void)setServerTrustMode:(CDVInvokedUrlCommand*)command {
