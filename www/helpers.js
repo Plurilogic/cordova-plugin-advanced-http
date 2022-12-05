@@ -286,8 +286,10 @@ module.exports = function init(global, jsUtil, cookieHandler, messages, base64, 
     return entry;
   }
 
-  function injectCookieHandler(url, cb) {
+  function injectCookieHandler(url, cb, log) {
     return function (response) {
+
+      console.log(log);
       cookieHandler.setCookieFromString(url, resolveCookieString(response.headers));
       cb(response);
     }

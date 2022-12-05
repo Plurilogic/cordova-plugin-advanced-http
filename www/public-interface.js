@@ -165,19 +165,10 @@ module.exports = function init(exec, cookieHandler, urlUtil, helpers, globalConf
 
     var headers = helpers.getMergedHeaders(url, options.headers, globalConfigs.headers);
 
-    var onFail = (() => {
-      console.log('FAILED');
-      return helpers.injectCookieHandler(url, failure);
-    })();
+    var onFail = helpers.injectCookieHandler(url, failure, "FAIL");
+    var onSuccess = helpers.injectCookieHandler(url, helpers.injectRawResponseHandler(options.responseType, success, failure), "SUCCESS");
 
-    var onSuccess = (() => {
-      console.log('SUCCESS');
-      return helpers.injectCookieHandler(url, helpers.injectRawResponseHandler(options.responseType, success, failure));
-    })();
-  
     var reqId = helpers.nextRequestId();
-
-    console.log('DOIN IT');
 
     switch (options.method) {
       case 'post':
