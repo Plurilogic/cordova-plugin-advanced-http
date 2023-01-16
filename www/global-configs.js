@@ -2,9 +2,9 @@ var globalConfigs = {
   headers: {},
   serializer: 'urlencoded',
   followRedirect: true,
-  timeout: 60.0,
-  connectTimeout: 30.0,
-  readTimeout: 30.0
+  timeout: 90.0,
+  connectTimeout: 90.0,
+  readTimeout: 90.0
 };
 
 module.exports = globalConfigs;
